@@ -1,0 +1,36 @@
+{
+  "name": "pipemeeter",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/main.js",
+  "scripts": {
+    "dev": "tsc && electron ."
+  },
+  "keywords": [],
+  "author": "Raraph84",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@types/node": "^26.6.3",
+    "electron": "^44.4.5",
+    "prettier": "^3.9.9",
+    "typescript": "^7.0.2"
+  },
+  "prettier": {
+    "tabWidth": 4,
+    "trailingComma": "none",
+    "printWidth": 120,
+    "overrides": [
+      {
+        "files": [
+          "package.json",
+          "package-lock.json",
+          "tsconfig.json"
+        ],
+        "options": {
+          "tabWidth": 2
+        }
+      }
+    ]
+  }
+}
