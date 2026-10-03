@@ -52,6 +52,8 @@ button {
 }
 
 .node {
+    min-width: 120px;
+    min-height: 300px;
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -59,7 +61,6 @@ button {
     border-radius: 8px;
     padding: 8px;
     padding-bottom: 12px;
-    min-height: 300px;
 
     .name {
         text-align: center;

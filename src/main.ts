@@ -5,7 +5,7 @@ import path from "node:path";
 app.whenReady().then(() => {
     const mainWindow = new BrowserWindow({
         width: 1200,
-        height: 680,
+        height: 700,
         title: "PipeMeeter",
         autoHideMenuBar: true,
         webPreferences: {
