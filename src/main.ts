@@ -31,11 +31,13 @@ app.whenReady().then(() => {
             inputs: inputs.map((node) => ({
                 id: node.nodeName,
                 name: node.props["node.description"],
+                volume: (node as any).volume ?? 100,
                 mute: (node as any).mute ?? false
             })),
             outputs: outputs.map((node) => ({
                 id: node.nodeName,
                 name: node.props["node.description"],
+                volume: (node as any).volume ?? 100,
                 mute: (node as any).mute ?? false
             }))
         });
@@ -44,13 +46,13 @@ app.whenReady().then(() => {
     pipewire.on("objectAdded", (obj) => {
         if (obj instanceof PipewireNode) {
             obj.on("nodeParam", (param) => {
-                if (
-                    param.type === PipewireNode.spa_param_type.SPA_PARAM_Props &&
-                    param.value.contents![spa_prop.SPA_PROP_mute]
-                ) {
+                if (param.type !== PipewireNode.spa_param_type.SPA_PARAM_Props) return;
+                if (param.value.contents![spa_prop.SPA_PROP_mute])
                     (obj as any).mute = param.value.contents![spa_prop.SPA_PROP_mute]!.value;
+                if (param.value.contents![spa_prop.SPA_PROP_volume])
+                    (obj as any).volume = (param.value.contents![spa_prop.SPA_PROP_volume]!.value as number) * 100;
+                if (param.value.contents![spa_prop.SPA_PROP_mute] && param.value.contents![spa_prop.SPA_PROP_volume])
                     updateConfig();
-                }
             });
 
             setImmediate(() => {
@@ -71,6 +73,16 @@ app.whenReady().then(() => {
             type: spa_type.SPA_TYPE_Object,
             objectType: 0,
             contents: { [spa_prop.SPA_PROP_mute]: { type: spa_type.SPA_TYPE_Bool, value: data.mute } }
+        });
+    });
+
+    ipcMain.on("setVolume", (event, data) => {
+        const nodes = Object.values(pipewire.objects).filter((obj) => obj instanceof PipewireNode);
+        const node = nodes.find((obj) => obj.nodeName === data.id)!;
+        node.setParam(PipewireNode.spa_param_type.SPA_PARAM_Props, {
+            type: spa_type.SPA_TYPE_Object,
+            objectType: 0,
+            contents: { [spa_prop.SPA_PROP_volume]: { type: spa_type.SPA_TYPE_Float, value: data.volume / 100 } }
         });
     });
 });

@@ -32,8 +32,21 @@ const Node = ({ i, state, node, type }: { i: number; state: any; node: any; type
         <span key={node.id} className="node">
             <span className="name">{node.name.slice(0, 10)}</span>
             <div className="content">
-                <span>
-                    <div></div>
+                <span className="volume">
+                    <div>
+                        <input
+                            type="range"
+                            min="0"
+                            max="100"
+                            value={node.volume}
+                            onChange={(event) =>
+                                (window as any).api.send("setVolume", {
+                                    id: node.id,
+                                    volume: event.currentTarget.value
+                                })
+                            }
+                        />
+                    </div>
                     <button
                         className={"mute" + (node.mute ? " active" : "")}
                         onClick={() => (window as any).api.send("setMute", { id: node.id, mute: !node.mute })}
