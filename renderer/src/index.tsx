@@ -30,7 +30,7 @@ const App = () => {
 const Node = ({ i, state, node, type }: { i: number; state: any; node: any; type: "input" | "output" }) => {
     return (
         <span key={node.id} className="node">
-            <span className="name">{node.name.slice(0, 10)}</span>
+            <span className="name">{node.name}</span>
             <div className="content">
                 <span className="volume">
                     <div>

@@ -1,6 +1,19 @@
 import { app, BrowserWindow, ipcMain } from "electron";
 import { Pipewire, PipewireNode, spa_prop, spa_type } from "pipewire";
 import path from "node:path";
+import fs from "node:fs";
+
+type NodeConfig = { id: string; name: string; mute?: boolean; volume?: number };
+
+const configPath = path.join(app.getPath("userData"), "config.json");
+const config: {
+    physicalInputs: NodeConfig[];
+    physicalOutputs: NodeConfig[];
+    virtualInputs: NodeConfig[];
+    virtualOutputs: NodeConfig[];
+} = fs.existsSync(configPath)
+    ? JSON.parse(fs.readFileSync(configPath, "utf-8"))
+    : { physicalInputs: [], physicalOutputs: [], virtualInputs: [], virtualOutputs: [] };
 
 app.whenReady().then(() => {
     const mainWindow = new BrowserWindow({
@@ -20,28 +33,67 @@ app.whenReady().then(() => {
 
     const updateConfig = () => {
         const nodes = Object.values(pipewire.objects).filter((obj) => obj instanceof PipewireNode);
-        const inputs = nodes.filter(
-            (node) => node.props["media.class"] === "Audio/Source" && node.props["node.description"]
-        );
-        const outputs = nodes.filter(
-            (node) => node.props["media.class"] === "Audio/Sink" && node.props["node.description"]
-        );
+        const inputs = [];
+        const outputs = [];
+        for (const physicalInput of config.physicalInputs) {
+            const node = nodes.find((obj) => obj.nodeName === physicalInput.id);
+            inputs.push({
+                id: physicalInput.id,
+                name: physicalInput.name,
+                online: !!node,
+                volume: (node as any)?.volume ?? physicalInput.volume ?? 100,
+                mute: (node as any)?.mute ?? physicalInput.mute ?? false
+            });
+        }
+        for (const physicalOutput of config.physicalOutputs) {
+            const node = nodes.find((obj) => obj.nodeName === physicalOutput.id);
+            outputs.push({
+                id: physicalOutput.id,
+                name: physicalOutput.name,
+                online: !!node,
+                volume: (node as any)?.volume ?? physicalOutput.volume ?? 100,
+                mute: (node as any)?.mute ?? physicalOutput.mute ?? false
+            });
+        }
+        for (const virtualInput of config.virtualInputs) {
+            const node = nodes.find((obj) => obj.nodeName === virtualInput.id);
+            inputs.push({
+                id: virtualInput.id,
+                name: virtualInput.name,
+                online: !!node,
+                volume: (node as any)?.volume ?? virtualInput.volume ?? 100,
+                mute: (node as any)?.mute ?? virtualInput.mute ?? false
+            });
+        }
+        for (const virtualOutput of config.virtualOutputs) {
+            const node = nodes.find((obj) => obj.nodeName === virtualOutput.id);
+            outputs.push({
+                id: virtualOutput.id,
+                name: virtualOutput.name,
+                online: !!node,
+                volume: (node as any)?.volume ?? virtualOutput.volume ?? 100,
+                mute: (node as any)?.mute ?? virtualOutput.mute ?? false
+            });
+        }
 
-        mainWindow.webContents.send("updateConfig", {
-            inputs: inputs.map((node) => ({
-                id: node.nodeName,
-                name: node.props["node.description"],
-                volume: (node as any).volume ?? 100,
-                mute: (node as any).mute ?? false
-            })),
-            outputs: outputs.map((node) => ({
-                id: node.nodeName,
-                name: node.props["node.description"],
-                volume: (node as any).volume ?? 100,
-                mute: (node as any).mute ?? false
-            }))
-        });
+        mainWindow.webContents.send("updateConfig", { inputs, outputs });
     };
+
+    for (const virtualInput of config.virtualInputs)
+        pipewire.createNode({
+            "factory.name": "support.null-audio-sink",
+            "node.name": virtualInput.id,
+            "node.description": virtualInput.name,
+            "media.class": "Audio/Sink"
+        });
+
+    for (const virtualOutput of config.virtualOutputs)
+        pipewire.createNode({
+            "factory.name": "support.null-audio-sink",
+            "node.name": virtualOutput.id,
+            "node.description": virtualOutput.name,
+            "media.class": "Audio/Source/Virtual"
+        });
 
     pipewire.on("objectAdded", (obj) => {
         if (obj instanceof PipewireNode) {
@@ -60,6 +112,10 @@ app.whenReady().then(() => {
                 obj.subscribeParams(Object.values(PipewireNode.spa_param_type).filter((v) => typeof v === "number"));
             });
         }
+    });
+
+    pipewire.on("objectRemoved", (obj) => {
+        if (obj instanceof PipewireNode) setImmediate(() => updateConfig());
     });
 
     pipewire.startLoop();
