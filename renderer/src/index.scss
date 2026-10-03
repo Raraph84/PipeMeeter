@@ -3,3 +3,57 @@
     padding: 0;
     box-sizing: border-box;
 }
+
+button {
+    background: transparent;
+    border: none;
+    font: inherit;
+    cursor: pointer;
+}
+
+body {
+    margin: 16px;
+    font-family: sans-serif;
+}
+
+.nodes {
+    display: flex;
+    gap: 16px;
+}
+
+button {
+    padding: 2px 4px;
+    border: 1px solid black;
+    border-radius: 6px;
+}
+
+.node {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 1;
+    max-width: 150px;
+
+    .content {
+        display: flex;
+        gap: 6px;
+        justify-content: space-evenly;
+    }
+
+    .index {
+        text-align: center;
+        font-size: 18px;
+    }
+
+    .name {
+        writing-mode: sideways-lr;
+        text-align: right;
+        max-height: 250px;
+    }
+
+    .outputs {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+}
