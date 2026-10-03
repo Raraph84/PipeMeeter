@@ -1,11 +1,11 @@
 import { app, BrowserWindow, ipcMain } from "electron";
-import { Pipewire, PipewireNode } from "pipewire";
+import { Pipewire, PipewireNode, spa_prop } from "pipewire";
 import path from "node:path";
 
 app.whenReady().then(() => {
     const mainWindow = new BrowserWindow({
         width: 1200,
-        height: 600,
+        height: 680,
         title: "PipeMeeter",
         autoHideMenuBar: true,
         webPreferences: {
@@ -30,17 +30,29 @@ app.whenReady().then(() => {
         mainWindow.webContents.send("updateConfig", {
             inputs: inputs.map((node) => ({
                 id: node.nodeName,
-                name: node.props["node.description"]
+                name: node.props["node.description"],
+                mute: (node as any).mute ?? false
             })),
             outputs: outputs.map((node) => ({
                 id: node.nodeName,
-                name: node.props["node.description"]
+                name: node.props["node.description"],
+                mute: (node as any).mute ?? false
             }))
         });
     };
 
     pipewire.on("objectAdded", (obj) => {
         if (obj instanceof PipewireNode) {
+            obj.on("nodeParam", (param) => {
+                if (
+                    param.type === PipewireNode.spa_param_type.SPA_PARAM_Props &&
+                    param.value.contents![spa_prop.SPA_PROP_mute]
+                ) {
+                    (obj as any).mute = param.value.contents![spa_prop.SPA_PROP_mute]!.value;
+                    updateConfig();
+                }
+            });
+
             setImmediate(() => {
                 obj.attachListener();
                 obj.subscribeParams(Object.values(PipewireNode.spa_param_type).filter((v) => typeof v === "number"));
