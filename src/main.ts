@@ -1,5 +1,5 @@
 import { app, BrowserWindow, ipcMain } from "electron";
-import { Pipewire, PipewireNode, spa_prop } from "pipewire";
+import { Pipewire, PipewireNode, spa_prop, spa_type } from "pipewire";
 import path from "node:path";
 
 app.whenReady().then(() => {
@@ -63,6 +63,16 @@ app.whenReady().then(() => {
     pipewire.startLoop();
 
     ipcMain.on("updateConfig", () => updateConfig());
+
+    ipcMain.on("setMute", (event, data) => {
+        const nodes = Object.values(pipewire.objects).filter((obj) => obj instanceof PipewireNode);
+        const node = nodes.find((obj) => obj.nodeName === data.id)!;
+        node.setParam(PipewireNode.spa_param_type.SPA_PARAM_Props, {
+            type: spa_type.SPA_TYPE_Object,
+            objectType: 0,
+            contents: { [spa_prop.SPA_PROP_mute]: { type: spa_type.SPA_TYPE_Bool, value: data.mute } }
+        });
+    });
 });
 
 app.on("window-all-closed", () => {

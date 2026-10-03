@@ -34,7 +34,12 @@ const Node = ({ i, state, node, type }: { i: number; state: any; node: any; type
             <div className="content">
                 <span>
                     <div></div>
-                    <button className={"mute" + (node.mute ? " active" : "")}>Mute</button>
+                    <button
+                        className={"mute" + (node.mute ? " active" : "")}
+                        onClick={() => (window as any).api.send("setMute", { id: node.id, mute: !node.mute })}
+                    >
+                        Mute
+                    </button>
                 </span>
                 <span className="outputs">
                     {type === "output" && <div>O{i + 1}</div>}
