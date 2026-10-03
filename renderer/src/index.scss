@@ -1,3 +1,5 @@
+@import url("https://api.fontshare.com/v2/css?f[]=chillax");
+
 * {
     margin: 0;
     padding: 0;
@@ -8,12 +10,23 @@ button {
     background: transparent;
     border: none;
     font: inherit;
+    color: inherit;
     cursor: pointer;
+    outline: none;
 }
 
 body {
     margin: 16px;
-    font-family: sans-serif;
+    background-color: #152a38;
+    font-family: "Chillax", sans-serif;
+    font-weight: 500;
+    color: white;
+}
+
+#root {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
 }
 
 .nodes {
@@ -22,33 +35,42 @@ body {
 }
 
 button {
-    padding: 2px 4px;
-    border: 1px solid black;
+    padding: 0 5px;
+    border: 1px solid white;
     border-radius: 6px;
+    font-weight: 450;
+
+    &.active {
+        border-color: rgb(112, 195, 153);
+        color: rgb(112, 195, 153);
+    }
+
+    &.mute.active {
+        border-color: rgb(225, 92, 80);
+        color: rgb(225, 92, 80);
+    }
 }
 
 .node {
     display: flex;
     flex-direction: column;
     gap: 8px;
-    flex: 1;
-    max-width: 150px;
+    background-color: #29435c;
+    border-radius: 8px;
+    padding: 8px;
+    padding-bottom: 12px;
+    min-height: 300px;
+
+    .name {
+        text-align: center;
+        font-size: 18px;
+        white-space: nowrap;
+    }
 
     .content {
         display: flex;
-        gap: 6px;
+        gap: 8px;
         justify-content: space-evenly;
-    }
-
-    .index {
-        text-align: center;
-        font-size: 18px;
-    }
-
-    .name {
-        writing-mode: sideways-lr;
-        text-align: right;
-        max-height: 250px;
     }
 
     .outputs {

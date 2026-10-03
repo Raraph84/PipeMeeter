@@ -4,10 +4,7 @@ import { useEffect, useState } from "react";
 import "./index.scss";
 
 const App = () => {
-    const [state, setState] = useState({
-        inputs: [],
-        outputs: []
-    });
+    const [state, setState] = useState({ inputs: [], outputs: [] });
 
     useEffect(() => {
         (window as any).api.on("updateConfig", (config: any) => setState(config));
@@ -33,23 +30,17 @@ const App = () => {
 const Node = ({ i, state, node, type }: { i: number; state: any; node: any; type: "input" | "output" }) => {
     return (
         <span key={node.id} className="node">
-            <div className="index">
-                {type === "input" ? "I" : "O"}
-                {i + 1}
-            </div>
+            <span className="name">{node.name.slice(0, 10)}</span>
             <div className="content">
-                <span className="name">{node.name}</span>
                 <span>
                     <div></div>
-                    <button className={node.mute ? "mute" : ""}>Mute</button>
+                    <button className="mute">Mute</button>
                 </span>
-                {type === "input" && (
-                    <span className="outputs">
-                        {state.outputs.map((_: any, i: number) => (
-                            <button key={i}>O{i + 1}</button>
-                        ))}
-                    </span>
-                )}
+                <span className="outputs">
+                    {type === "output" && <div>O{i + 1}</div>}
+                    <div>0dB</div>
+                    {type === "input" && state.outputs.map((_: any, i: number) => <button key={i}>O{i + 1}</button>)}
+                </span>
             </div>
         </span>
     );
