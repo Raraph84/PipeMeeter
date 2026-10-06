@@ -1,15 +1,16 @@
 import { app, BrowserWindow, ipcMain } from "electron";
-import { Pipewire, PipewireNode, spa_prop, spa_type } from "pipewire";
+import { Pipewire, PipewireNode, PipewirePort, spa_prop, spa_type } from "pipewire";
 import path from "node:path";
 import fs from "node:fs";
 
 type NodeConfig = { id: string; name: string; mute?: boolean; volume?: number };
+type NodeInput = NodeConfig & { outputs: string[] };
 
 const configPath = path.join(app.getPath("userData"), "config.json");
 const config: {
-    physicalInputs: NodeConfig[];
+    physicalInputs: NodeInput[];
     physicalOutputs: NodeConfig[];
-    virtualInputs: NodeConfig[];
+    virtualInputs: NodeInput[];
     virtualOutputs: NodeConfig[];
 } = fs.existsSync(configPath)
     ? JSON.parse(fs.readFileSync(configPath, "utf-8"))
@@ -118,6 +119,41 @@ app.whenReady().then(() => {
     });
 
     pipewire.startLoop();
+
+    const createLinks = () => {
+        const nodes = Object.values(pipewire.objects).filter((obj) => obj instanceof PipewireNode);
+        const ports = Object.values(pipewire.objects).filter((obj) => obj instanceof PipewirePort);
+
+        for (const input of config.physicalInputs.concat(config.virtualInputs)) {
+            const inputNode = nodes.find((obj) => obj.nodeName === input.id);
+            if (!inputNode) continue;
+            for (const output of input.outputs) {
+                const outputNode = nodes.find((obj) => obj.nodeName === output);
+                if (!outputNode) continue;
+                const leftInputPort = ports.find(
+                    (p) => p.nodeId === inputNode.id && p.portDirection === "out" && p.props["audio.channel"] === "FL"
+                );
+                const rightInputPort = ports.find(
+                    (p) => p.nodeId === inputNode.id && p.portDirection === "out" && p.props["audio.channel"] === "FR"
+                );
+                const leftOutputPort = ports.find(
+                    (p) => p.nodeId === outputNode.id && p.portDirection === "in" && p.props["audio.channel"] === "FL"
+                );
+                const rightOutputPort = ports.find(
+                    (p) => p.nodeId === outputNode.id && p.portDirection === "in" && p.props["audio.channel"] === "FR"
+                );
+                if (!leftInputPort || !rightInputPort || !leftOutputPort || !rightOutputPort) {
+                    console.warn(`Could not find ports for linking ${inputNode.nodeName} to ${outputNode.nodeName}`);
+                    continue;
+                }
+                pipewire.createLink(leftOutputPort.id, leftInputPort.id);
+                pipewire.createLink(rightOutputPort.id, rightInputPort.id);
+                console.log(`Linked ${inputNode.nodeName} to ${outputNode.nodeName}`);
+            }
+        }
+    };
+
+    setTimeout(createLinks, 1000);
 
     ipcMain.on("updateConfig", () => updateRenderer());
 
