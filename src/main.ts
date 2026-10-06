@@ -15,6 +15,11 @@ const config: {
     ? JSON.parse(fs.readFileSync(configPath, "utf-8"))
     : { physicalInputs: [], physicalOutputs: [], virtualInputs: [], virtualOutputs: [] };
 
+const getConfigNode = (id: string) =>
+    [...config.physicalInputs, ...config.physicalOutputs, ...config.virtualInputs, ...config.virtualOutputs].find(
+        (node) => node.id === id
+    );
+
 app.whenReady().then(() => {
     const mainWindow = new BrowserWindow({
         width: 1200,
@@ -35,46 +40,38 @@ app.whenReady().then(() => {
         const nodes = Object.values(pipewire.objects).filter((obj) => obj instanceof PipewireNode);
         const inputs = [];
         const outputs = [];
-        for (const physicalInput of config.physicalInputs) {
-            const node = nodes.find((obj) => obj.nodeName === physicalInput.id);
+        for (const physicalInput of config.physicalInputs)
             inputs.push({
                 id: physicalInput.id,
                 name: physicalInput.name,
-                online: !!node,
-                volume: (node as any)?.volume ?? physicalInput.volume ?? 100,
-                mute: (node as any)?.mute ?? physicalInput.mute ?? false
+                online: !!nodes.find((obj) => obj.nodeName === physicalInput.id),
+                volume: physicalInput.volume ?? 100,
+                mute: physicalInput.mute ?? false
             });
-        }
-        for (const physicalOutput of config.physicalOutputs) {
-            const node = nodes.find((obj) => obj.nodeName === physicalOutput.id);
+        for (const physicalOutput of config.physicalOutputs)
             outputs.push({
                 id: physicalOutput.id,
                 name: physicalOutput.name,
-                online: !!node,
-                volume: (node as any)?.volume ?? physicalOutput.volume ?? 100,
-                mute: (node as any)?.mute ?? physicalOutput.mute ?? false
+                online: !!nodes.find((obj) => obj.nodeName === physicalOutput.id),
+                volume: physicalOutput.volume ?? 100,
+                mute: physicalOutput.mute ?? false
             });
-        }
-        for (const virtualInput of config.virtualInputs) {
-            const node = nodes.find((obj) => obj.nodeName === virtualInput.id);
+        for (const virtualInput of config.virtualInputs)
             inputs.push({
                 id: virtualInput.id,
                 name: virtualInput.name,
-                online: !!node,
-                volume: (node as any)?.volume ?? virtualInput.volume ?? 100,
-                mute: (node as any)?.mute ?? virtualInput.mute ?? false
+                online: !!nodes.find((obj) => obj.nodeName === virtualInput.id),
+                volume: virtualInput.volume ?? 100,
+                mute: virtualInput.mute ?? false
             });
-        }
-        for (const virtualOutput of config.virtualOutputs) {
-            const node = nodes.find((obj) => obj.nodeName === virtualOutput.id);
+        for (const virtualOutput of config.virtualOutputs)
             outputs.push({
                 id: virtualOutput.id,
                 name: virtualOutput.name,
-                online: !!node,
-                volume: (node as any)?.volume ?? virtualOutput.volume ?? 100,
-                mute: (node as any)?.mute ?? virtualOutput.mute ?? false
+                online: !!nodes.find((obj) => obj.nodeName === virtualOutput.id),
+                volume: virtualOutput.volume ?? 100,
+                mute: virtualOutput.mute ?? false
             });
-        }
 
         mainWindow.webContents.send("updateConfig", { inputs, outputs });
     };
@@ -99,10 +96,12 @@ app.whenReady().then(() => {
         if (obj instanceof PipewireNode) {
             obj.on("nodeParam", (param) => {
                 if (param.type !== PipewireNode.spa_param_type.SPA_PARAM_Props) return;
+                const node = getConfigNode(obj.nodeName);
+                if (!node) return;
                 if (param.value.contents![spa_prop.SPA_PROP_mute])
-                    (obj as any).mute = param.value.contents![spa_prop.SPA_PROP_mute]!.value;
+                    node.mute = param.value.contents![spa_prop.SPA_PROP_mute]!.value as boolean;
                 if (param.value.contents![spa_prop.SPA_PROP_volume])
-                    (obj as any).volume = (param.value.contents![spa_prop.SPA_PROP_volume]!.value as number) * 100;
+                    node.volume = (param.value.contents![spa_prop.SPA_PROP_volume]!.value as number) * 100;
                 if (param.value.contents![spa_prop.SPA_PROP_mute] && param.value.contents![spa_prop.SPA_PROP_volume])
                     updateConfig();
             });
@@ -124,7 +123,8 @@ app.whenReady().then(() => {
 
     ipcMain.on("setMute", (event, data) => {
         const nodes = Object.values(pipewire.objects).filter((obj) => obj instanceof PipewireNode);
-        const node = nodes.find((obj) => obj.nodeName === data.id)!;
+        const node = nodes.find((obj) => obj.nodeName === data.id);
+        if (!node) return;
         node.setParam(PipewireNode.spa_param_type.SPA_PARAM_Props, {
             type: spa_type.SPA_TYPE_Object,
             objectType: 0,
@@ -134,7 +134,8 @@ app.whenReady().then(() => {
 
     ipcMain.on("setVolume", (event, data) => {
         const nodes = Object.values(pipewire.objects).filter((obj) => obj instanceof PipewireNode);
-        const node = nodes.find((obj) => obj.nodeName === data.id)!;
+        const node = nodes.find((obj) => obj.nodeName === data.id);
+        if (!node) return;
         node.setParam(PipewireNode.spa_param_type.SPA_PARAM_Props, {
             type: spa_type.SPA_TYPE_Object,
             objectType: 0,
@@ -146,3 +147,5 @@ app.whenReady().then(() => {
 app.on("window-all-closed", () => {
     app.quit();
 });
+
+process.on("uncaughtException", console.error);
