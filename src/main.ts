@@ -36,44 +36,44 @@ app.whenReady().then(() => {
 
     const pipewire = new Pipewire();
 
-    const updateConfig = () => {
+    const updateRenderer = () => {
         const nodes = Object.values(pipewire.objects).filter((obj) => obj instanceof PipewireNode);
-        const inputs = [];
-        const outputs = [];
-        for (const physicalInput of config.physicalInputs)
-            inputs.push({
-                id: physicalInput.id,
-                name: physicalInput.name,
-                online: !!nodes.find((obj) => obj.nodeName === physicalInput.id),
-                volume: physicalInput.volume ?? 100,
-                mute: physicalInput.mute ?? false
-            });
-        for (const physicalOutput of config.physicalOutputs)
-            outputs.push({
-                id: physicalOutput.id,
-                name: physicalOutput.name,
-                online: !!nodes.find((obj) => obj.nodeName === physicalOutput.id),
-                volume: physicalOutput.volume ?? 100,
-                mute: physicalOutput.mute ?? false
-            });
-        for (const virtualInput of config.virtualInputs)
-            inputs.push({
-                id: virtualInput.id,
-                name: virtualInput.name,
-                online: !!nodes.find((obj) => obj.nodeName === virtualInput.id),
-                volume: virtualInput.volume ?? 100,
-                mute: virtualInput.mute ?? false
-            });
-        for (const virtualOutput of config.virtualOutputs)
-            outputs.push({
-                id: virtualOutput.id,
-                name: virtualOutput.name,
-                online: !!nodes.find((obj) => obj.nodeName === virtualOutput.id),
-                volume: virtualOutput.volume ?? 100,
-                mute: virtualOutput.mute ?? false
-            });
-
-        mainWindow.webContents.send("updateConfig", { inputs, outputs });
+        mainWindow.webContents.send("updateConfig", {
+            inputs: config.physicalInputs
+                .map((physicalInput) => ({
+                    id: physicalInput.id,
+                    name: physicalInput.name,
+                    online: !!nodes.find((obj) => obj.nodeName === physicalInput.id),
+                    volume: physicalInput.volume ?? 100,
+                    mute: physicalInput.mute ?? false
+                }))
+                .concat(
+                    config.virtualInputs.map((virtualInput) => ({
+                        id: virtualInput.id,
+                        name: virtualInput.name,
+                        online: !!nodes.find((obj) => obj.nodeName === virtualInput.id),
+                        volume: virtualInput.volume ?? 100,
+                        mute: virtualInput.mute ?? false
+                    }))
+                ),
+            outputs: config.physicalOutputs
+                .map((physicalOutput) => ({
+                    id: physicalOutput.id,
+                    name: physicalOutput.name,
+                    online: !!nodes.find((obj) => obj.nodeName === physicalOutput.id),
+                    volume: physicalOutput.volume ?? 100,
+                    mute: physicalOutput.mute ?? false
+                }))
+                .concat(
+                    config.virtualOutputs.map((virtualOutput) => ({
+                        id: virtualOutput.id,
+                        name: virtualOutput.name,
+                        online: !!nodes.find((obj) => obj.nodeName === virtualOutput.id),
+                        volume: virtualOutput.volume ?? 100,
+                        mute: virtualOutput.mute ?? false
+                    }))
+                )
+        });
     };
 
     for (const virtualInput of config.virtualInputs)
@@ -103,7 +103,7 @@ app.whenReady().then(() => {
                 if (param.value.contents![spa_prop.SPA_PROP_volume])
                     node.volume = (param.value.contents![spa_prop.SPA_PROP_volume]!.value as number) * 100;
                 if (param.value.contents![spa_prop.SPA_PROP_mute] && param.value.contents![spa_prop.SPA_PROP_volume])
-                    updateConfig();
+                    updateRenderer();
             });
 
             setImmediate(() => {
@@ -114,14 +114,14 @@ app.whenReady().then(() => {
     });
 
     pipewire.on("objectRemoved", (obj) => {
-        if (obj instanceof PipewireNode) setImmediate(() => updateConfig());
+        if (obj instanceof PipewireNode) setImmediate(() => updateRenderer());
     });
 
     pipewire.startLoop();
 
-    ipcMain.on("updateConfig", () => updateConfig());
+    ipcMain.on("updateConfig", () => updateRenderer());
 
-    ipcMain.on("setMute", (event, data) => {
+    ipcMain.on("setMute", (_, data) => {
         const nodes = Object.values(pipewire.objects).filter((obj) => obj instanceof PipewireNode);
         const node = nodes.find((obj) => obj.nodeName === data.id);
         if (!node) return;
@@ -132,7 +132,7 @@ app.whenReady().then(() => {
         });
     });
 
-    ipcMain.on("setVolume", (event, data) => {
+    ipcMain.on("setVolume", (_, data) => {
         const nodes = Object.values(pipewire.objects).filter((obj) => obj instanceof PipewireNode);
         const node = nodes.find((obj) => obj.nodeName === data.id);
         if (!node) return;
