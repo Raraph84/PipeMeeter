@@ -1,5 +1,5 @@
 import { app, BrowserWindow, ipcMain } from "electron";
-import { Pipewire, PipewireNode, PipewirePort, spa_prop, spa_type } from "pipewire";
+import { Pipewire, PipewireLink, PipewireNode, PipewirePort, spa_prop, spa_type } from "pipewire";
 import path from "node:path";
 import fs from "node:fs";
 
@@ -138,6 +138,21 @@ app.whenReady().then(() => {
         console.log(`Linked ${inputNode.nodeName} to ${outputNode.nodeName}`);
     };
 
+    const destroyLink = (input: string, output: string) => {
+        const nodes = Object.values(pipewire.objects).filter((obj) => obj instanceof PipewireNode);
+
+        const inputNode = nodes.find((n) => n.nodeName === input);
+        const outputNode = nodes.find((n) => n.nodeName === output);
+        if (!inputNode || !outputNode) return;
+
+        const links = Object.values(pipewire.objects).filter((obj) => obj instanceof PipewireLink);
+
+        for (const link of links)
+            if (link.outputNode === inputNode.id && link.inputNode === outputNode.id) link.destroy();
+
+        console.log(`Unlinked ${inputNode.nodeName} from ${outputNode.nodeName}`);
+    };
+
     setTimeout(() => {
         for (const input of config.physicalInputs.concat(config.virtualInputs))
             for (const output of input.outputs) createLink(input.id, output);
@@ -179,8 +194,13 @@ app.whenReady().then(() => {
 
     ipcMain.on("toggleLink", (_, data) => {
         const input = config.physicalInputs.concat(config.virtualInputs).find((input) => input.id === data.input)!;
-        if (input.outputs.includes(data.output)) input.outputs.splice(input.outputs.indexOf(data.output), 1);
-        else input.outputs.push(data.output);
+        if (input.outputs.includes(data.output)) {
+            destroyLink(data.input, data.output);
+            input.outputs.splice(input.outputs.indexOf(data.output), 1);
+        } else {
+            createLink(data.input, data.output);
+            input.outputs.push(data.output);
+        }
         saveConfig();
         updateRenderer();
     });
