@@ -42,7 +42,7 @@ const Node = ({ i, state, node, type }: { i: number; state: any; node: any; type
                             onChange={(event) =>
                                 (window as any).api.send("setVolume", {
                                     id: node.id,
-                                    volume: event.currentTarget.value
+                                    volume: Number(event.currentTarget.value)
                                 })
                             }
                             onDoubleClick={() => (window as any).api.send("setVolume", { id: node.id, volume: 100 })}
@@ -65,7 +65,18 @@ const Node = ({ i, state, node, type }: { i: number; state: any; node: any; type
                     {type === "output" && <div>O{i + 1}</div>}
                     <div>{node.volume.toFixed(0)}%</div>
                     <div>0dB</div>
-                    {type === "input" && state.outputs.map((_: any, i: number) => <button key={i}>O{i + 1}</button>)}
+                    {type === "input" &&
+                        state.outputs.map((output: any, i: number) => (
+                            <button
+                                key={i}
+                                className={node.outputs.includes(output.id) ? "active" : ""}
+                                onClick={() =>
+                                    (window as any).api.send("toggleLink", { input: node.id, output: output.id })
+                                }
+                            >
+                                O{i + 1}
+                            </button>
+                        ))}
                 </span>
             </div>
         </span>
