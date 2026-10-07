@@ -4,23 +4,23 @@ import { useEffect, useState } from "react";
 import "./index.scss";
 
 const App = () => {
-    const [state, setState] = useState({ inputs: [], outputs: [] });
+    const [config, setConfig] = useState({ inputs: [], outputs: [] });
 
     useEffect(() => {
-        (window as any).api.on("updateConfig", (config: any) => setState(config));
+        (window as any).api.on("updateConfig", (config: any) => setConfig(config));
         (window as any).api.send("updateConfig");
     }, []);
 
     return (
         <>
             <div className="nodes">
-                {state.inputs.map((input: any, i: number) => (
-                    <Node key={input.id} i={i} state={state} node={input} type="input" />
+                {config.inputs.map((input: any, i: number) => (
+                    <Node key={input.id} i={i} state={config} node={input} type="input" />
                 ))}
             </div>
             <div className="nodes">
-                {state.outputs.map((output: any, i: number) => (
-                    <Node key={output.id} i={i} state={state} node={output} type="output" />
+                {config.outputs.map((output: any, i: number) => (
+                    <Node key={output.id} i={i} state={config} node={output} type="output" />
                 ))}
             </div>
         </>

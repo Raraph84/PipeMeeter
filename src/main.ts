@@ -17,6 +17,8 @@ const config: {
     ? JSON.parse(fs.readFileSync(configPath, "utf-8"))
     : { physicalInputs: [], physicalOutputs: [], virtualInputs: [], virtualOutputs: [] };
 
+const saveConfig = () => fs.writeFileSync(configPath, JSON.stringify(config, null, 4), "utf-8");
+
 const getConfigNode = (id: string) =>
     [...config.physicalInputs, ...config.physicalOutputs, ...config.virtualInputs, ...config.virtualOutputs].find(
         (node) => node.id === id
@@ -80,14 +82,16 @@ app.whenReady().then(() => {
         if (obj instanceof PipewireNode) {
             obj.on("nodeParam", (param) => {
                 if (param.type !== PipewireNode.spa_param_type.SPA_PARAM_Props) return;
+                if (!param.value.contents![spa_prop.SPA_PROP_mute] || !param.value.contents![spa_prop.SPA_PROP_volume])
+                    return;
                 const node = getConfigNode(obj.nodeName);
                 if (!node) return;
                 if (param.value.contents![spa_prop.SPA_PROP_mute])
                     node.mute = param.value.contents![spa_prop.SPA_PROP_mute]!.value as boolean;
                 if (param.value.contents![spa_prop.SPA_PROP_volume])
                     node.volume = (param.value.contents![spa_prop.SPA_PROP_volume]!.value as number) * 100;
-                if (param.value.contents![spa_prop.SPA_PROP_mute] && param.value.contents![spa_prop.SPA_PROP_volume])
-                    updateRenderer();
+                saveConfig();
+                updateRenderer();
             });
 
             setImmediate(() => {
@@ -103,40 +107,41 @@ app.whenReady().then(() => {
 
     pipewire.startLoop();
 
-    const createLinks = () => {
+    const createLink = (input: string, output: string) => {
         const nodes = Object.values(pipewire.objects).filter((obj) => obj instanceof PipewireNode);
-        const ports = Object.values(pipewire.objects).filter((obj) => obj instanceof PipewirePort);
 
-        for (const input of config.physicalInputs.concat(config.virtualInputs)) {
-            const inputNode = nodes.find((obj) => obj.nodeName === input.id);
-            if (!inputNode) continue;
-            for (const output of input.outputs) {
-                const outputNode = nodes.find((obj) => obj.nodeName === output);
-                if (!outputNode) continue;
-                const leftInputPort = ports.find(
-                    (p) => p.nodeId === inputNode.id && p.portDirection === "out" && p.props["audio.channel"] === "FL"
-                );
-                const rightInputPort = ports.find(
-                    (p) => p.nodeId === inputNode.id && p.portDirection === "out" && p.props["audio.channel"] === "FR"
-                );
-                const leftOutputPort = ports.find(
-                    (p) => p.nodeId === outputNode.id && p.portDirection === "in" && p.props["audio.channel"] === "FL"
-                );
-                const rightOutputPort = ports.find(
-                    (p) => p.nodeId === outputNode.id && p.portDirection === "in" && p.props["audio.channel"] === "FR"
-                );
-                if (!leftInputPort || !rightInputPort || !leftOutputPort || !rightOutputPort) {
-                    console.warn(`Could not find ports for linking ${inputNode.nodeName} to ${outputNode.nodeName}`);
-                    continue;
-                }
-                pipewire.createLink(leftOutputPort.id, leftInputPort.id);
-                pipewire.createLink(rightOutputPort.id, rightInputPort.id);
-                console.log(`Linked ${inputNode.nodeName} to ${outputNode.nodeName}`);
-            }
+        const inputNode = nodes.find((n) => n.nodeName === input);
+        const outputNode = nodes.find((n) => n.nodeName === output);
+        if (!inputNode || !outputNode) return;
+
+        const ports = Object.values(pipewire.objects).filter((obj) => obj instanceof PipewirePort);
+        const leftInputPort = ports.find(
+            (p) => p.nodeId === inputNode.id && p.portDirection === "out" && p.props["audio.channel"] === "FL"
+        );
+        const rightInputPort = ports.find(
+            (p) => p.nodeId === inputNode.id && p.portDirection === "out" && p.props["audio.channel"] === "FR"
+        );
+        const leftOutputPort = ports.find(
+            (p) => p.nodeId === outputNode.id && p.portDirection === "in" && p.props["audio.channel"] === "FL"
+        );
+        const rightOutputPort = ports.find(
+            (p) => p.nodeId === outputNode.id && p.portDirection === "in" && p.props["audio.channel"] === "FR"
+        );
+
+        if (!leftInputPort || !rightInputPort || !leftOutputPort || !rightOutputPort) {
+            console.warn(`Could not find ports for linking ${inputNode.nodeName} to ${outputNode.nodeName}`);
+            return;
         }
+
+        pipewire.createLink(leftOutputPort.id, leftInputPort.id);
+        pipewire.createLink(rightOutputPort.id, rightInputPort.id);
+        console.log(`Linked ${inputNode.nodeName} to ${outputNode.nodeName}`);
     };
 
-    setTimeout(createLinks, 1000);
+    setTimeout(() => {
+        for (const input of config.physicalInputs.concat(config.virtualInputs))
+            for (const output of input.outputs) createLink(input.id, output);
+    }, 1000);
 
     ipcMain.on("updateConfig", () => updateRenderer());
 
@@ -151,6 +156,7 @@ app.whenReady().then(() => {
             });
         } else {
             getConfigNode(data.id)!.mute = data.mute;
+            saveConfig();
             updateRenderer();
         }
     });
@@ -166,6 +172,7 @@ app.whenReady().then(() => {
             });
         } else {
             getConfigNode(data.id)!.volume = data.volume;
+            saveConfig();
             updateRenderer();
         }
     });
@@ -174,6 +181,7 @@ app.whenReady().then(() => {
         const input = config.physicalInputs.concat(config.virtualInputs).find((input) => input.id === data.input)!;
         if (input.outputs.includes(data.output)) input.outputs.splice(input.outputs.indexOf(data.output), 1);
         else input.outputs.push(data.output);
+        saveConfig();
         updateRenderer();
     });
 });
