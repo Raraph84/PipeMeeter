@@ -62,7 +62,7 @@ const Node = ({ i, state, node, type }: { i: number; state: any; node: any; type
                     </button>
                 </span>
                 <span className="outputs">
-                    {type === "output" && <div>O{i + 1}</div>}
+                    {type === "output" && <div>{node.slug}</div>}
                     <div>{node.volume.toFixed(0)}%</div>
                     <div>0dB</div>
                     {type === "input" &&
@@ -74,7 +74,7 @@ const Node = ({ i, state, node, type }: { i: number; state: any; node: any; type
                                     (window as any).api.send("toggleLink", { input: node.id, output: output.id })
                                 }
                             >
-                                O{i + 1}
+                                {output.slug}
                             </button>
                         ))}
                 </span>

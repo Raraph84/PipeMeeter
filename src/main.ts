@@ -5,13 +5,14 @@ import fs from "node:fs";
 
 type NodeConfig = { id: string; name: string; mute?: boolean; volume?: number };
 type NodeInput = NodeConfig & { outputs: string[] };
+type NodeOutput = NodeConfig & { slug: string };
 
 const configPath = path.join(app.getPath("userData"), "config.json");
 const config: {
     physicalInputs: NodeInput[];
-    physicalOutputs: NodeConfig[];
+    physicalOutputs: NodeOutput[];
     virtualInputs: NodeInput[];
-    virtualOutputs: NodeConfig[];
+    virtualOutputs: NodeOutput[];
 } = fs.existsSync(configPath)
     ? JSON.parse(fs.readFileSync(configPath, "utf-8"))
     : { physicalInputs: [], physicalOutputs: [], virtualInputs: [], virtualOutputs: [] };
@@ -40,42 +41,22 @@ app.whenReady().then(() => {
     const updateRenderer = () => {
         const nodes = Object.values(pipewire.objects).filter((obj) => obj instanceof PipewireNode);
         mainWindow.webContents.send("updateConfig", {
-            inputs: config.physicalInputs
-                .map((physicalInput) => ({
-                    id: physicalInput.id,
-                    name: physicalInput.name,
-                    online: !!nodes.find((obj) => obj.nodeName === physicalInput.id),
-                    volume: physicalInput.volume ?? 100,
-                    mute: physicalInput.mute ?? false,
-                    outputs: physicalInput.outputs
-                }))
-                .concat(
-                    config.virtualInputs.map((virtualInput) => ({
-                        id: virtualInput.id,
-                        name: virtualInput.name,
-                        online: !!nodes.find((obj) => obj.nodeName === virtualInput.id),
-                        volume: virtualInput.volume ?? 100,
-                        mute: virtualInput.mute ?? false,
-                        outputs: virtualInput.outputs
-                    }))
-                ),
-            outputs: config.physicalOutputs
-                .map((physicalOutput) => ({
-                    id: physicalOutput.id,
-                    name: physicalOutput.name,
-                    online: !!nodes.find((obj) => obj.nodeName === physicalOutput.id),
-                    volume: physicalOutput.volume ?? 100,
-                    mute: physicalOutput.mute ?? false
-                }))
-                .concat(
-                    config.virtualOutputs.map((virtualOutput) => ({
-                        id: virtualOutput.id,
-                        name: virtualOutput.name,
-                        online: !!nodes.find((obj) => obj.nodeName === virtualOutput.id),
-                        volume: virtualOutput.volume ?? 100,
-                        mute: virtualOutput.mute ?? false
-                    }))
-                )
+            inputs: config.physicalInputs.concat(config.virtualInputs).map((physicalInput) => ({
+                id: physicalInput.id,
+                name: physicalInput.name,
+                online: !!nodes.find((obj) => obj.nodeName === physicalInput.id),
+                volume: physicalInput.volume ?? 100,
+                mute: physicalInput.mute ?? false,
+                outputs: physicalInput.outputs
+            })),
+            outputs: config.physicalOutputs.concat(config.virtualOutputs).map((physicalOutput) => ({
+                id: physicalOutput.id,
+                name: physicalOutput.name,
+                slug: physicalOutput.slug,
+                online: !!nodes.find((obj) => obj.nodeName === physicalOutput.id),
+                volume: physicalOutput.volume ?? 100,
+                mute: physicalOutput.mute ?? false
+            }))
         });
     };
 
