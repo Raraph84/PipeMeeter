@@ -45,6 +45,22 @@ npm start
 npm run package
 ```
 
+## TODO
+
+- Device added/removed auto linking
+- Add/remove/create/destroy input/output
+- Rename inputs/outputs
+- High pass
+- Noise gate
+- Limiter
+- Noise reduction
+- Compressor
+- Balance
+- Show audio level
+- Set volume per link
+- Reorganize inputs/outputs 
+- Keybinds to mute/unmute
+
 ## Author
 
 Raraph84
