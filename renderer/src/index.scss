@@ -66,6 +66,10 @@ button {
         text-align: center;
         font-size: 18px;
         white-space: nowrap;
+
+        &.offline {
+            color: rgb(255, 255, 255, 0.5);
+        }
     }
 
     .content {
@@ -99,5 +103,6 @@ button {
         display: flex;
         flex-direction: column;
         gap: 4px;
+        min-width: 42px;
     }
 }
