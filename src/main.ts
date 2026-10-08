@@ -29,6 +29,7 @@ app.whenReady().then(() => {
         width: 1200,
         height: 700,
         title: "PipeMeeter",
+        icon: path.join(import.meta.dirname, "assets", "icon.png"),
         autoHideMenuBar: true,
         webPreferences: {
             preload: path.join(import.meta.dirname, "preload.cjs")

@@ -4,10 +4,10 @@
   "description": "",
   "main": "dist/main.js",
   "scripts": {
-    "dev:app": "tsc && NODE_ENV=development electron .",
+    "dev:app": "npm run build:app && NODE_ENV=development electron .",
     "dev:renderer": "npm run dev --prefix renderer",
     "dev": "concurrently \"npm run dev:renderer\" \"npm run dev:app\"",
-    "build:app": "tsc",
+    "build:app": "tsc && cp -r src/assets dist",
     "build:renderer": "npm run build --prefix renderer",
     "build": "npm run build:renderer && npm run build:app",
     "start": "npm run build && electron-forge start",
