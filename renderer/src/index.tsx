@@ -1,10 +1,22 @@
 import { createRoot } from "react-dom/client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import "./index.scss";
 
 const App = () => {
     const [config, setConfig] = useState({ inputs: [], outputs: [] });
+    const oldSizeRef = useRef({ width: 0, height: 0 });
+
+    useEffect(() => {
+        const root = document.getElementById("root")!;
+        const interval = setInterval(() => {
+            if (oldSizeRef.current.width !== root.clientWidth || oldSizeRef.current.height !== root.clientHeight) {
+                oldSizeRef.current = { width: root.clientWidth, height: root.clientHeight };
+                (window as any).api.send("resize", oldSizeRef.current);
+            }
+        }, 100);
+        return () => clearInterval(interval);
+    }, []);
 
     useEffect(() => {
         (window as any).api.on("updateConfig", (config: any) => setConfig(config));

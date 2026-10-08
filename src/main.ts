@@ -241,6 +241,11 @@ app.whenReady().then(() => {
         saveConfig();
         updateRenderer();
     });
+
+    ipcMain.on("resize", (_, data) => {
+        console.log(`Resizing window to ${data.width}x${data.height}`);
+        if (window) window.setSize(data.width, data.height);
+    });
 });
 
 process.on("uncaughtException", console.error);

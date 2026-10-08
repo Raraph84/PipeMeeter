@@ -16,7 +16,6 @@ button {
 }
 
 body {
-    margin: 16px;
     background-color: #152a38;
     font-family: "Chillax", sans-serif;
     font-weight: 500;
@@ -24,6 +23,8 @@ body {
 }
 
 #root {
+    width: max-content;
+    padding: 16px;
     display: flex;
     flex-direction: column;
     gap: 16px;
