@@ -141,16 +141,28 @@ app.whenReady().then(() => {
 
         const ports = Object.values(pipewire.objects).filter((obj) => obj instanceof PipewirePort);
         const leftInputPort = ports.find(
-            (p) => p.nodeId === inputNode.id && p.portDirection === "out" && p.props["audio.channel"] === "FL"
+            (p) =>
+                p.nodeId === inputNode.id &&
+                p.portDirection === "out" &&
+                (p.props["audio.channel"] === "FL" || p.props["audio.channel"] === "MONO")
         );
         const rightInputPort = ports.find(
-            (p) => p.nodeId === inputNode.id && p.portDirection === "out" && p.props["audio.channel"] === "FR"
+            (p) =>
+                p.nodeId === inputNode.id &&
+                p.portDirection === "out" &&
+                (p.props["audio.channel"] === "FR" || p.props["audio.channel"] === "MONO")
         );
         const leftOutputPort = ports.find(
-            (p) => p.nodeId === outputNode.id && p.portDirection === "in" && p.props["audio.channel"] === "FL"
+            (p) =>
+                p.nodeId === outputNode.id &&
+                p.portDirection === "in" &&
+                (p.props["audio.channel"] === "FL" || p.props["audio.channel"] === "MONO")
         );
         const rightOutputPort = ports.find(
-            (p) => p.nodeId === outputNode.id && p.portDirection === "in" && p.props["audio.channel"] === "FR"
+            (p) =>
+                p.nodeId === outputNode.id &&
+                p.portDirection === "in" &&
+                (p.props["audio.channel"] === "FR" || p.props["audio.channel"] === "MONO")
         );
         if (!leftInputPort || !rightInputPort || !leftOutputPort || !rightOutputPort) return;
 
