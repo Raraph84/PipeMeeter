@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from "electron";
+import { app, BrowserWindow, ipcMain, Menu, Tray } from "electron";
 import { Pipewire, PipewireLink, PipewireNode, PipewirePort, spa_prop, spa_type } from "pipewire";
 import path from "node:path";
 import fs from "node:fs";
@@ -25,25 +25,42 @@ const getConfigNode = (id: string) =>
     );
 
 app.whenReady().then(() => {
-    const mainWindow = new BrowserWindow({
-        width: 1200,
-        height: 700,
-        title: "PipeMeeter",
-        icon: path.join(import.meta.dirname, "assets", "icon.png"),
-        autoHideMenuBar: true,
-        webPreferences: {
-            preload: path.join(import.meta.dirname, "preload.cjs")
-        }
-    });
+    let window: BrowserWindow | null = null;
 
-    if (process.env.NODE_ENV === "development") mainWindow.loadURL("http://localhost:5173/");
-    else mainWindow.loadFile(path.join(import.meta.dirname, "..", "renderer", "dist", "index.html"));
+    const createWindow = () => {
+        if (window) {
+            if (!window.isFocused()) window.hide();
+            window.show();
+            return;
+        }
+
+        window = new BrowserWindow({
+            width: 1200,
+            height: 700,
+            title: "PipeMeeter",
+            icon: path.join(import.meta.dirname, "assets", "icon.png"),
+            autoHideMenuBar: true,
+            webPreferences: {
+                preload: path.join(import.meta.dirname, "preload.cjs")
+            }
+        });
+
+        if (process.env.NODE_ENV === "development") window.loadURL("http://localhost:5173/");
+        else window.loadFile(path.join(import.meta.dirname, "..", "renderer", "dist", "index.html"));
+    };
+
+    createWindow();
+
+    const tray = new Tray(path.join(import.meta.dirname, "assets", "icon.png"));
+    tray.setContextMenu(Menu.buildFromTemplate([{ label: "Quit", click: () => app.quit() }]));
+    tray.on("click", () => createWindow());
 
     const pipewire = new Pipewire();
 
     const updateRenderer = () => {
+        if (!window) return;
         const nodes = Object.values(pipewire.objects).filter((obj) => obj instanceof PipewireNode);
-        mainWindow.webContents.send("updateConfig", {
+        window.webContents.send("updateConfig", {
             inputs: config.physicalInputs.concat(config.virtualInputs).map((physicalInput) => ({
                 id: physicalInput.id,
                 name: physicalInput.name,
@@ -107,6 +124,9 @@ app.whenReady().then(() => {
     });
 
     pipewire.startLoop();
+
+    app.on("window-all-closed", () => (window = null));
+    app.on("will-quit", () => pipewire.deinit());
 
     const createLink = (input: string, output: string) => {
         const nodes = Object.values(pipewire.objects).filter((obj) => obj instanceof PipewireNode);
@@ -205,10 +225,6 @@ app.whenReady().then(() => {
         saveConfig();
         updateRenderer();
     });
-});
-
-app.on("window-all-closed", () => {
-    app.quit();
 });
 
 process.on("uncaughtException", console.error);
