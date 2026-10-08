@@ -47,7 +47,6 @@ npm run package
 
 ## TODO
 
-- Device added/removed auto linking
 - Add/remove/create/destroy input/output
 - Rename inputs/outputs
 - High pass

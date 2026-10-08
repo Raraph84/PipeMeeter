@@ -116,7 +116,7 @@ app.whenReady().then(() => {
                 obj.attachListener();
                 obj.subscribeParams(Object.values(PipewireNode.spa_param_type).filter((v) => typeof v === "number"));
             });
-        }
+        } else if (obj instanceof PipewirePort) setImmediate(() => createLinks());
     });
 
     pipewire.on("objectRemoved", (obj) => {
@@ -135,6 +135,10 @@ app.whenReady().then(() => {
         const outputNode = nodes.find((n) => n.nodeName === output);
         if (!inputNode || !outputNode) return;
 
+        const links = Object.values(pipewire.objects).filter((obj) => obj instanceof PipewireLink);
+        const existing = links.filter((link) => link.outputNode === inputNode.id && link.inputNode === outputNode.id);
+        if (existing.length === 2) return;
+
         const ports = Object.values(pipewire.objects).filter((obj) => obj instanceof PipewirePort);
         const leftInputPort = ports.find(
             (p) => p.nodeId === inputNode.id && p.portDirection === "out" && p.props["audio.channel"] === "FL"
@@ -148,11 +152,7 @@ app.whenReady().then(() => {
         const rightOutputPort = ports.find(
             (p) => p.nodeId === outputNode.id && p.portDirection === "in" && p.props["audio.channel"] === "FR"
         );
-
-        if (!leftInputPort || !rightInputPort || !leftOutputPort || !rightOutputPort) {
-            console.warn(`Could not find ports for linking ${inputNode.nodeName} to ${outputNode.nodeName}`);
-            return;
-        }
+        if (!leftInputPort || !rightInputPort || !leftOutputPort || !rightOutputPort) return;
 
         pipewire.createLink(leftOutputPort.id, leftInputPort.id);
         pipewire.createLink(rightOutputPort.id, rightInputPort.id);
@@ -174,10 +174,14 @@ app.whenReady().then(() => {
         console.log(`Unlinked ${inputNode.nodeName} from ${outputNode.nodeName}`);
     };
 
-    setTimeout(() => {
+    let creatingLinks = false;
+    const createLinks = () => {
+        if (creatingLinks) return;
+        creatingLinks = true;
+        setImmediate(() => (creatingLinks = false));
         for (const input of config.physicalInputs.concat(config.virtualInputs))
             for (const output of input.outputs) createLink(input.id, output);
-    }, 1000);
+    };
 
     ipcMain.on("updateConfig", () => updateRenderer());
 
