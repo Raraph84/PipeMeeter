@@ -49,7 +49,7 @@ app.whenReady().then(() => {
         else window.loadFile(path.join(import.meta.dirname, "..", "renderer", "dist", "index.html"));
     };
 
-    createWindow();
+    if (!process.argv.includes("--hidden")) createWindow();
 
     const tray = new Tray(path.join(import.meta.dirname, "assets", "icon.png"));
     tray.setContextMenu(Menu.buildFromTemplate([{ label: "Quit", click: () => app.quit() }]));
