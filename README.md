@@ -2,6 +2,8 @@
 
 An audio mixer for PipeWire, inspired by VoiceMeeter, built with Electron and React.
 
+<img width="1549" height="1051" alt="image" src="https://github.com/user-attachments/assets/2faedb42-939d-4308-bf26-bc87bd2c2482" />
+
 ## Features
 
 - Manage physical and virtual audio inputs and outputs
