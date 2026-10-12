@@ -61,6 +61,7 @@ npm run package
 - Set volume per link
 - Reorganize inputs/outputs 
 - Keybinds to mute/unmute
+- VBAN inputs/outputs
 
 ## Author
 
