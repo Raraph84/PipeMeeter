@@ -95,14 +95,13 @@ app.whenReady().then(() => {
         if (obj instanceof PipewireNode) {
             obj.on("nodeParam", (param) => {
                 if (param.type !== PipewireNode.spa_param_type.SPA_PARAM_Props) return;
-                if (!param.value.contents![spa_prop.SPA_PROP_mute] || !param.value.contents![spa_prop.SPA_PROP_volume])
-                    return;
+                const params = param.value.contents as any;
+                if (!params[spa_prop.SPA_PROP_mute] || !params[spa_prop.SPA_PROP_channelVolumes]) return;
                 const node = getConfigNode(obj.nodeName);
                 if (!node) return;
-                if (param.value.contents![spa_prop.SPA_PROP_mute])
-                    node.mute = param.value.contents![spa_prop.SPA_PROP_mute]!.value as boolean;
-                if (param.value.contents![spa_prop.SPA_PROP_volume])
-                    node.volume = (param.value.contents![spa_prop.SPA_PROP_volume]!.value as number) * 100;
+                if (params[spa_prop.SPA_PROP_mute]) node.mute = params[spa_prop.SPA_PROP_mute]!.value;
+                if (params[spa_prop.SPA_PROP_channelVolumes])
+                    node.volume = params[spa_prop.SPA_PROP_channelVolumes].value[0].value * 100;
                 saveConfig();
                 updateRenderer();
             });
@@ -214,7 +213,15 @@ app.whenReady().then(() => {
             node.setParam(PipewireNode.spa_param_type.SPA_PARAM_Props, {
                 type: spa_type.SPA_TYPE_Object,
                 objectType: 0,
-                contents: { [spa_prop.SPA_PROP_volume]: { type: spa_type.SPA_TYPE_Float, value: data.volume / 100 } }
+                contents: {
+                    [spa_prop.SPA_PROP_channelVolumes]: {
+                        type: spa_type.SPA_TYPE_Array,
+                        value: [
+                            { type: spa_type.SPA_TYPE_Float, value: data.volume / 100 },
+                            { type: spa_type.SPA_TYPE_Float, value: data.volume / 100 }
+                        ]
+                    }
+                }
             });
         } else {
             getConfigNode(data.id)!.volume = data.volume;
