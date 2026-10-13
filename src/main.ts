@@ -3,26 +3,19 @@ import { Pipewire, PipewireLink, PipewireNode, PipewirePort, spa_prop, spa_type 
 import path from "node:path";
 import fs from "node:fs";
 
-type NodeConfig = { id: string; name: string; mute?: boolean; volume?: number };
+type NodeConfig = { id: string; name: string; mute: boolean; volume: number; virtual: boolean };
 type NodeInput = NodeConfig & { outputs: string[] };
 type NodeOutput = NodeConfig & { slug: string };
 
 const configPath = path.join(app.getPath("userData"), "config.json");
-const config: {
-    physicalInputs: NodeInput[];
-    physicalOutputs: NodeOutput[];
-    virtualInputs: NodeInput[];
-    virtualOutputs: NodeOutput[];
-} = fs.existsSync(configPath)
+const config: { inputs: NodeInput[]; outputs: NodeOutput[] } = fs.existsSync(configPath)
     ? JSON.parse(fs.readFileSync(configPath, "utf-8"))
-    : { physicalInputs: [], physicalOutputs: [], virtualInputs: [], virtualOutputs: [] };
+    : { inputs: [], outputs: [] };
 
 const saveConfig = () => fs.writeFileSync(configPath, JSON.stringify(config, null, 4), "utf-8");
 
 const getConfigNode = (id: string) =>
-    [...config.physicalInputs, ...config.physicalOutputs, ...config.virtualInputs, ...config.virtualOutputs].find(
-        (node) => node.id === id
-    );
+    (config.inputs as NodeConfig[]).concat(config.outputs).find((node) => node.id === id);
 
 app.whenReady().then(() => {
     let window: BrowserWindow | null = null;
@@ -61,26 +54,26 @@ app.whenReady().then(() => {
         if (!window) return;
         const nodes = Object.values(pipewire.objects).filter((obj) => obj instanceof PipewireNode);
         window.webContents.send("updateConfig", {
-            inputs: config.physicalInputs.concat(config.virtualInputs).map((physicalInput) => ({
-                id: physicalInput.id,
-                name: physicalInput.name,
-                online: !!nodes.find((obj) => obj.nodeName === physicalInput.id),
-                volume: physicalInput.volume ?? 100,
-                mute: physicalInput.mute ?? false,
-                outputs: physicalInput.outputs
+            inputs: config.inputs.map((input) => ({
+                id: input.id,
+                name: input.name,
+                online: !!nodes.find((obj) => obj.nodeName === input.id),
+                volume: input.volume,
+                mute: input.mute,
+                outputs: input.outputs
             })),
-            outputs: config.physicalOutputs.concat(config.virtualOutputs).map((physicalOutput) => ({
-                id: physicalOutput.id,
-                name: physicalOutput.name,
-                slug: physicalOutput.slug,
-                online: !!nodes.find((obj) => obj.nodeName === physicalOutput.id),
-                volume: physicalOutput.volume ?? 100,
-                mute: physicalOutput.mute ?? false
+            outputs: config.outputs.map((output) => ({
+                id: output.id,
+                name: output.name,
+                slug: output.slug,
+                online: !!nodes.find((obj) => obj.nodeName === output.id),
+                volume: output.volume,
+                mute: output.mute
             }))
         });
     };
 
-    for (const virtualInput of config.virtualInputs)
+    for (const virtualInput of config.inputs.filter((input) => input.virtual))
         pipewire.createNode({
             "factory.name": "support.null-audio-sink",
             "node.name": virtualInput.id,
@@ -88,7 +81,7 @@ app.whenReady().then(() => {
             "media.class": "Audio/Sink"
         });
 
-    for (const virtualOutput of config.virtualOutputs)
+    for (const virtualOutput of config.outputs.filter((output) => output.virtual))
         pipewire.createNode({
             "factory.name": "support.null-audio-sink",
             "node.name": virtualOutput.id,
@@ -191,8 +184,7 @@ app.whenReady().then(() => {
         if (creatingLinks) return;
         creatingLinks = true;
         setImmediate(() => (creatingLinks = false));
-        for (const input of config.physicalInputs.concat(config.virtualInputs))
-            for (const output of input.outputs) createLink(input.id, output);
+        for (const input of config.inputs) for (const output of input.outputs) createLink(input.id, output);
     };
 
     ipcMain.on("updateConfig", () => updateRenderer());
@@ -230,7 +222,7 @@ app.whenReady().then(() => {
     });
 
     ipcMain.on("toggleLink", (_, data) => {
-        const input = config.physicalInputs.concat(config.virtualInputs).find((input) => input.id === data.input)!;
+        const input = config.inputs.find((input) => input.id === data.input)!;
         if (input.outputs.includes(data.output)) {
             destroyLink(data.input, data.output);
             input.outputs.splice(input.outputs.indexOf(data.output), 1);
