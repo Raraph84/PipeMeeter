@@ -97,11 +97,11 @@ app.whenReady().then(() => {
                 if (param.type !== PipewireNode.spa_param_type.SPA_PARAM_Props) return;
                 const params = param.value.contents as any;
                 if (!params[spa_prop.SPA_PROP_mute] || !params[spa_prop.SPA_PROP_channelVolumes]) return;
+                if (!params[spa_prop.SPA_PROP_channelVolumes].value.length) return;
                 const node = getConfigNode(obj.nodeName);
                 if (!node) return;
-                if (params[spa_prop.SPA_PROP_mute]) node.mute = params[spa_prop.SPA_PROP_mute]!.value;
-                if (params[spa_prop.SPA_PROP_channelVolumes])
-                    node.volume = params[spa_prop.SPA_PROP_channelVolumes].value[0].value * 100;
+                node.mute = params[spa_prop.SPA_PROP_mute].value;
+                node.volume = params[spa_prop.SPA_PROP_channelVolumes].value[0].value * 100;
                 saveConfig();
                 updateRenderer();
             });
