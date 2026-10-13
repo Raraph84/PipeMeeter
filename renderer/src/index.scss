@@ -30,6 +30,13 @@ body {
     gap: 16px;
 }
 
+.row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+}
+
 .nodes {
     display: flex;
     gap: 16px;
@@ -49,6 +56,38 @@ button {
     &.mute.active {
         border-color: rgb(225, 92, 80);
         color: rgb(225, 92, 80);
+    }
+}
+
+.menu {
+    position: relative;
+
+    .menu-toggle {
+        padding: 2px 8px;
+    }
+
+    .menu-dropdown {
+        position: absolute;
+        right: 0;
+        width: max-content;
+        margin-top: 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        padding: 4px;
+        background-color: #29435c;
+        border-radius: 8px;
+        box-shadow: 0 8px 20px rgb(0, 0, 0, 0.4);
+
+        button {
+            padding: 8px 12px;
+            border: none;
+            text-align: left;
+
+            &:hover {
+                background-color: rgb(255, 255, 255, 0.1);
+            }
+        }
     }
 }
 

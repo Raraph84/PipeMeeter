@@ -244,6 +244,8 @@ app.whenReady().then(() => {
         console.log(`Resizing window to ${data.width}x${data.height}`);
         if (window) window.setSize(data.width, data.height);
     });
+
+    ipcMain.on("quit", () => app.quit());
 });
 
 process.on("uncaughtException", console.error);

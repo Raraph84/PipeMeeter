@@ -25,10 +25,13 @@ const App = () => {
 
     return (
         <>
-            <div className="nodes">
-                {config.inputs.map((input: any, i: number) => (
-                    <Node key={input.id} i={i} state={config} node={input} type="input" />
-                ))}
+            <div className="row">
+                <div className="nodes">
+                    {config.inputs.map((input: any, i: number) => (
+                        <Node key={input.id} i={i} state={config} node={input} type="input" />
+                    ))}
+                </div>
+                <Menu />
             </div>
             <div className="nodes">
                 {config.outputs.map((output: any, i: number) => (
@@ -36,6 +39,33 @@ const App = () => {
                 ))}
             </div>
         </>
+    );
+};
+
+const Menu = () => {
+    const [open, setOpen] = useState(false);
+    const menuRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (!open) return;
+        const handleClickOutside = (event: MouseEvent) => {
+            if (menuRef.current && !menuRef.current.contains(event.target as Node)) setOpen(false);
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, [open]);
+
+    return (
+        <div className="menu" ref={menuRef}>
+            <button className="menu-toggle" onClick={() => setOpen((open) => !open)}>
+                Menu
+            </button>
+            {open && (
+                <div className="menu-dropdown">
+                    <button onClick={() => (window as any).api.send("quit")}>Quitter</button>
+                </div>
+            )}
+        </div>
     );
 };
 
