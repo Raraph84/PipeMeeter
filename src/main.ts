@@ -78,7 +78,8 @@ app.whenReady().then(() => {
             "factory.name": "support.null-audio-sink",
             "node.name": virtualInput.id,
             "node.description": virtualInput.name,
-            "media.class": "Audio/Sink"
+            "media.class": "Audio/Sink",
+            "monitor.channel-volumes": "true"
         });
 
     for (const virtualOutput of config.outputs.filter((output) => output.virtual))
@@ -86,7 +87,8 @@ app.whenReady().then(() => {
             "factory.name": "support.null-audio-sink",
             "node.name": virtualOutput.id,
             "node.description": virtualOutput.name,
-            "media.class": "Audio/Source/Virtual"
+            "media.class": "Audio/Source/Virtual",
+            "monitor.channel-volumes": "true"
         });
 
     pipewire.on("objectAdded", (obj) => {
