@@ -73,24 +73,6 @@ app.whenReady().then(() => {
         });
     };
 
-    for (const virtualInput of config.inputs.filter((input) => input.virtual))
-        pipewire.createNode({
-            "factory.name": "support.null-audio-sink",
-            "node.name": virtualInput.id,
-            "node.description": virtualInput.name,
-            "media.class": "Audio/Sink",
-            "monitor.channel-volumes": "true"
-        });
-
-    for (const virtualOutput of config.outputs.filter((output) => output.virtual))
-        pipewire.createNode({
-            "factory.name": "support.null-audio-sink",
-            "node.name": virtualOutput.id,
-            "node.description": virtualOutput.name,
-            "media.class": "Audio/Source/Virtual",
-            "monitor.channel-volumes": "true"
-        });
-
     pipewire.on("objectAdded", (obj) => {
         if (obj instanceof PipewireNode) {
             obj.on("nodeParam", (param) => {
@@ -122,9 +104,25 @@ app.whenReady().then(() => {
     app.on("window-all-closed", () => (window = null));
     app.on("will-quit", () => pipewire.deinit());
 
+    const createNode = (node: NodeConfig, type: "input" | "output") => {
+        const nodes = Object.values(pipewire.objects).filter((obj) => obj instanceof PipewireNode);
+        const existing = nodes.find((n) => n.nodeName === node.id);
+        if (existing) return;
+
+        pipewire.createNode({
+            "factory.name": "support.null-audio-sink",
+            "node.name": node.id,
+            "node.description": node.name,
+            "media.class": type === "input" ? "Audio/Sink" : "Audio/Source/Virtual",
+            "monitor.channel-volumes": "true"
+        });
+    };
+
+    for (const virtualInput of config.inputs.filter((input) => input.virtual)) createNode(virtualInput, "input");
+    for (const virtualOutput of config.outputs.filter((output) => output.virtual)) createNode(virtualOutput, "output");
+
     const createLink = (input: string, output: string) => {
         const nodes = Object.values(pipewire.objects).filter((obj) => obj instanceof PipewireNode);
-
         const inputNode = nodes.find((n) => n.nodeName === input);
         const outputNode = nodes.find((n) => n.nodeName === output);
         if (!inputNode || !outputNode) return;
@@ -167,7 +165,6 @@ app.whenReady().then(() => {
 
     const destroyLink = (input: string, output: string) => {
         const nodes = Object.values(pipewire.objects).filter((obj) => obj instanceof PipewireNode);
-
         const inputNode = nodes.find((n) => n.nodeName === input);
         const outputNode = nodes.find((n) => n.nodeName === output);
         if (!inputNode || !outputNode) return;
