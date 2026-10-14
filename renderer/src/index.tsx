@@ -5,6 +5,7 @@ import "./index.scss";
 
 const App = () => {
     const [config, setConfig] = useState({ inputs: [], outputs: [] });
+    const [removing, setRemoving] = useState(false);
     const oldSizeRef = useRef({ width: 0, height: 0 });
 
     useEffect(() => {
@@ -27,22 +28,22 @@ const App = () => {
         <>
             <div className="row">
                 <div className="nodes">
-                    {config.inputs.map((input: any, i: number) => (
-                        <Node key={input.id} i={i} state={config} node={input} type="input" />
+                    {config.inputs.map((input: any) => (
+                        <Node key={input.id} config={config} node={input} type="input" removing={removing} />
                     ))}
                 </div>
-                <Menu />
+                <Menu setRemoving={setRemoving} />
             </div>
             <div className="nodes">
-                {config.outputs.map((output: any, i: number) => (
-                    <Node key={output.id} i={i} state={config} node={output} type="output" />
+                {config.outputs.map((output: any) => (
+                    <Node key={output.id} config={config} node={output} type="output" removing={removing} />
                 ))}
             </div>
         </>
     );
 };
 
-const Menu = () => {
+const Menu = ({ setRemoving }: { setRemoving: (removing: (removing: boolean) => boolean) => void }) => {
     const [open, setOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
 
@@ -55,6 +56,16 @@ const Menu = () => {
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, [open]);
 
+    const handleQuit = () => {
+        if (!confirm("Are you sure you want to quit?")) return;
+        (window as any).api.send("quit");
+    };
+
+    const handleRemove = () => {
+        setRemoving((removing) => !removing);
+        setOpen(false);
+    };
+
     return (
         <div className="menu" ref={menuRef}>
             <button className="menu-toggle" onClick={() => setOpen((open) => !open)}>
@@ -62,14 +73,30 @@ const Menu = () => {
             </button>
             {open && (
                 <div className="menu-dropdown">
-                    <button onClick={() => (window as any).api.send("quit")}>Quitter</button>
+                    <button onClick={handleRemove}>Remove mode</button>
+                    <button onClick={handleQuit}>Quit</button>
                 </div>
             )}
         </div>
     );
 };
 
-const Node = ({ i, state, node, type }: { i: number; state: any; node: any; type: "input" | "output" }) => {
+const Node = ({
+    config,
+    node,
+    type,
+    removing
+}: {
+    config: any;
+    node: any;
+    type: "input" | "output";
+    removing: boolean;
+}) => {
+    const handleRemove = () => {
+        if (!confirm(`Are you sure you want to remove ${node.name}?`)) return;
+        (window as any).api.send("removeNode", { id: node.id });
+    };
+
     return (
         <span key={node.id} className="node">
             <span className={"name" + (!node.online ? " offline" : "")}>{node.name}</span>
@@ -102,13 +129,17 @@ const Node = ({ i, state, node, type }: { i: number; state: any; node: any; type
                     >
                         Mute
                     </button>
+                    {removing && (
+                        <button className="mute active" onClick={handleRemove}>
+                            Remove
+                        </button>
+                    )}
                 </span>
                 <span className="outputs">
                     {type === "output" && <div>{node.slug}</div>}
                     <div>{node.volume.toFixed(0)}%</div>
-                    <div>0dB</div>
                     {type === "input" &&
-                        state.outputs.map((output: any, i: number) => (
+                        config.outputs.map((output: any, i: number) => (
                             <button
                                 key={i}
                                 className={node.outputs.includes(output.id) ? "active" : ""}

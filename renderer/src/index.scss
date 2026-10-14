@@ -20,6 +20,7 @@ body {
     font-family: "Chillax", sans-serif;
     font-weight: 500;
     color: white;
+    overflow: hidden;
 }
 
 #root {
@@ -123,6 +124,7 @@ button {
         display: flex;
         flex-direction: column;
         align-items: center;
+        gap: 4px;
 
         div {
             width: 100%;
@@ -132,7 +134,7 @@ button {
 
         input[type="range"] {
             width: 100%;
-            margin: 12px 0;
+            margin: 8px 0;
             writing-mode: vertical-lr;
             transform: rotate(180deg);
             outline: none;

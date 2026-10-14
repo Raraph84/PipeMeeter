@@ -118,6 +118,14 @@ app.whenReady().then(() => {
         });
     };
 
+    const destroyNode = (node: NodeConfig) => {
+        const nodes = Object.values(pipewire.objects).filter((obj) => obj instanceof PipewireNode);
+        const existing = nodes.find((n) => n.nodeName === node.id);
+        if (!existing) return;
+
+        existing.destroy();
+    };
+
     for (const virtualInput of config.inputs.filter((input) => input.virtual)) createNode(virtualInput, "input");
     for (const virtualOutput of config.outputs.filter((output) => output.virtual)) createNode(virtualOutput, "output");
 
@@ -238,6 +246,27 @@ app.whenReady().then(() => {
         }
         saveConfig();
         updateRenderer();
+    });
+
+    ipcMain.on("removeNode", (_, data) => {
+        const input = config.inputs.find((input) => input.id === data.id);
+        if (input) {
+            config.inputs.splice(config.inputs.indexOf(input), 1);
+            for (const outputId of input.outputs) destroyLink(input.id, outputId);
+            if (input.virtual) destroyNode(input);
+        } else {
+            const output = config.outputs.find((output) => output.id === data.id)!;
+            for (const input of config.inputs) {
+                if (input.outputs.includes(output.id)) {
+                    destroyLink(input.id, output.id);
+                    input.outputs.splice(input.outputs.indexOf(output.id), 1);
+                }
+            }
+            config.outputs.splice(config.outputs.indexOf(output), 1);
+            if (output.virtual) destroyNode(output);
+        }
+        updateRenderer();
+        saveConfig();
     });
 
     ipcMain.on("resize", (_, data) => {
